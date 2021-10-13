@@ -1,0 +1,212 @@
+import net.minecraftforge.gradle.common.util.RunConfig
+
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '4.1.+', changing: true
+        classpath "io.freefair.gradle:aspectj-plugin:5.3.3.3"
+    }
+}
+
+project.ext {
+    aspectjVersion = '1.9.7'
+}
+
+configurations {
+    runtimeAgent
+    ajc
+    aspects
+    annotationProcessor
+    compile {
+        extendsFrom aspects
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: "io.freefair.aspectj.post-compile-weaving"
+
+version = '1.0'
+group = 'com.engineersbox.expandedfusion' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = 'expandedfusion'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(8) // Mojang ships Java 8 to end users, so your mod should target Java 8.
+
+compileJava {
+    options.compilerArgs += [
+            "-XprintRounds",
+            "-XprintProcessorInfo"
+    ]
+    ajc {
+        options.compilerArgs += [
+                "-showWeaveInfo",
+                "-verbose"
+        ]
+    }
+}
+
+repositories {
+    jcenter()
+    mavenLocal()
+    maven { // JEI
+        name = "Progwml6 maven"
+        url = "https://dvs1.progwml6.com/files/maven/"
+    }
+    maven { // JEI mirror
+        name = "ModMaven"
+        url = "https://modmaven.k-4u.nl"
+    }
+    maven {
+        url 'https://repo.maven.apache.org/maven2'
+        name 'Maven Central'
+    }
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
+}
+
+dependencies {
+
+    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
+    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
+    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
+    minecraft 'net.minecraftforge:forge:1.16.5-36.2.0'
+
+    // JEI
+    if (project.hasProperty("jei_version")) {
+        // compile against the JEI API but do not include it at runtime
+        compileOnly fg.deobf("mezz.jei:jei-${project.jei_version}")
+        // at runtime, use the full JEI jar
+        runtimeOnly fg.deobf("mezz.jei:jei-${project.jei_version}")
+    }
+
+    // Guice
+    implementation group: 'com.google.inject', name: 'guice', version: '5.0.1'
+    // Reflections
+    implementation group: 'org.reflections', name: 'reflections', version: '0.9.12'
+    // SLF4J API
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.32'
+    // SLF4J simple static bindings
+    implementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.32'
+    // Auto Service
+    compileOnly group: 'com.google.auto.service', name: 'auto-service', version: '1.0'
+    annotationProcessor group: 'com.google.auto.service', name: 'auto-service', version: '1.0'
+    // GSON
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.7'
+    // FindBugs Annotations
+    implementation group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: '4.4.0'
+    // ClassGraph
+    implementation group: 'io.github.classgraph', name: 'classgraph', version: '4.8.115'
+    // AspectJ Runtime
+    implementation group: 'org.aspectj', name: 'aspectjrt', version: '1.9.7'
+    // AspectJ Weaver
+    implementation group: 'org.aspectj', name: 'aspectjweaver', version: '1.9.7'
+    // AspectJ Tools
+    ajc group: 'org.aspectj', name: 'aspectjtools', version: "1.9.7"
+    // Hook weaver agent into classloading
+    runtimeAgent group: 'org.aspectj', name: 'aspectjweaver', version: '1.9.7'
+    // BuddyBuddy bytecode generation
+    implementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.11.18'
+
+}
+
+println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
+minecraft {
+    // The mappings can be changed at any time, and must be in the following format.
+    // Channel:   Version:
+    // snapshot   YYYYMMDD   Snapshot are built nightly.
+    // stable     #          Stables are built at the discretion of the MCP team.
+    // official   MCVersion  Official field/method names from Mojang mapping files
+    //
+    // You must be aware of the Mojang license when using the 'official' mappings.
+    // See more information here: https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
+    //
+    // Use non-default mappings at your own risk. they may not always work.
+    // Simply re-run your setup task after changing the mappings to update your workspace.
+    mappings channel: 'snapshot', version: '20210309-1.16.5'
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+    runs {
+        client {}
+
+        server {}
+
+        data {
+            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+            args '--mod', 'expandedfusion', '--reports', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            property 'langmetadata.elements_to_gen', project.lang_elements
+            property 'langmetadata.resource_out', project.lang_out_dir
+            property 'langmetadata.package_name', project.lang_package_name
+        }
+    }
+}
+
+def jvmProperties = [
+        "forge.logging.markers": "REGISTRIES",
+        "forge.logging.console.level": "debug",
+        "org.aspectj.tracing.enabled": "true",
+        "aj.weaving.verbose": "true",
+        "org.aspectj.weaver.showWeaveInfo": "true"
+]
+
+minecraft.runs.each {
+    RunConfig config ->
+        config.workingDirectory project.file('run')
+        jvmProperties.each {
+            Map.Entry<String, String> prop -> config.property(prop.key, prop.value)
+        }
+        config.mods {
+            expandedfusion {
+                source(sourceSets.main)
+            }
+        }
+        configurations.runtimeAgent.each {
+            File jarFile -> config.jvmArgs("-javaagent:${jarFile.absolutePath}")
+        }
+}
+
+// Include resources generated by data generators.
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// Example for how to get properties into the manifest for reading by the runtime..
+jar {
+    manifest {
+        attributes([
+            "Specification-Title": "expandedfusion",
+            "Specification-Vendor": "expandedfusion",
+            "Specification-Version": "1", // We are version 1 of ourselves
+            "Implementation-Title": project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" :"expandedfusion",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+// Example configuration to allow publishing using the maven-publish task
+// This is the preferred method to reobfuscate your jar file
+jar.finalizedBy('reobfJar') 
+// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
+//publish.dependsOn('reobfJar')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
+    }
+}

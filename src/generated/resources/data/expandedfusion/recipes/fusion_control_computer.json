@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "INI",
+    "SIS",
+    "INI"
+  ],
+  "key": {
+    "I": {
+      "tag": "forge:ingots/iron"
+    },
+    "N": {
+      "tag": "forge:blocks/niobium_titanium_coil"
+    },
+    "S": {
+      "item": "expandedfusion:copper_beryllium_bonded_shielding"
+    }
+  },
+  "result": {
+    "item": "expandedfusion:fusion_control_computer"
+  }
+}
